@@ -24,3 +24,45 @@ export function encodeWav16(samples, sampleRate) {
   }
   return buffer;
 }
+
+// Any browser-made WAV (16-bit PCM or 32-bit float, mono or stereo) to the
+// smaller 16-bit mono WAV we upload. A 16-bit mono file is returned as is.
+export function toWav16(buffer) {
+  const v = new DataView(buffer);
+  const tag = (o, t) => [...t].every((c, i) => o + i < v.byteLength && v.getUint8(o + i) === c.charCodeAt(0));
+  if (!tag(0, "RIFF") || !tag(8, "WAVE")) throw new Error("That is not a WAV file.");
+
+  let format;
+  let channels;
+  let rate;
+  let bits;
+  let data;
+  for (let o = 12; o + 8 <= v.byteLength; ) {
+    const size = v.getUint32(o + 4, true);
+    if (tag(o, "fmt ")) {
+      format = v.getUint16(o + 8, true);
+      channels = v.getUint16(o + 10, true);
+      rate = v.getUint32(o + 12, true);
+      bits = v.getUint16(o + 22, true);
+    } else if (tag(o, "data")) {
+      data = { start: o + 8, length: Math.min(size, v.byteLength - o - 8) };
+      break;
+    }
+    o += 8 + size + (size % 2);
+  }
+  if (!data || !format) throw new Error("That WAV file is damaged.");
+  if (format === 1 && bits === 16 && channels === 1) return buffer;
+
+  const bytes = bits / 8;
+  const frames = Math.floor(data.length / (bytes * channels));
+  const mono = new Float32Array(frames);
+  for (let i = 0; i < frames; i++) {
+    let sum = 0;
+    for (let c = 0; c < channels; c++) {
+      const at = data.start + (i * channels + c) * bytes;
+      sum += format === 3 ? v.getFloat32(at, true) : v.getInt16(at, true) / 32768;
+    }
+    mono[i] = sum / channels;
+  }
+  return encodeWav16(mono, rate);
+}

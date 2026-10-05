@@ -19,19 +19,18 @@
       <span id="picked" hidden><span id="fileName"></span> <a href="#" id="clear">remove</a></span>
     </div>
 
-    <select id="voice" aria-label="Voice for typed text">
-      <option value="af_heart">Voice: Heart (female)</option>
-      <option value="af_bella">Voice: Bella (female)</option>
-      <option value="bf_emma">Voice: Emma (British, female)</option>
-      <option value="am_michael">Voice: Michael (male)</option>
-      <option value="am_onyx">Voice: Onyx (deep male)</option>
-      <option value="bm_george">Voice: George (British, male)</option>
+    <select id="engine" aria-label="Where the voice is made">
+      <option value="browser">Voice made: in my browser (Kokoro)</option>
+      <option value="browser-piper">Voice made: in my browser (Piper)</option>
     </select>
+
+    <select id="voice" aria-label="Voice for typed text"></select>
 
     <button id="go" type="submit">Create link</button>
     <p id="msg" class="status" role="status"></p>
   </form>
 </main>
+<script type="importmap">{ "imports": { "onnxruntime-web": "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/esm/ort.min.js" } }</script>
 <script type="module" src="/app.js"></script>
 </body>
 </html>
