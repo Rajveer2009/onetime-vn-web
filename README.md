@@ -109,8 +109,6 @@ server/   Node server: app.js (routes), store.js (clips), ratelimit.js, tunnel.j
 public/   The pages: index.html, app.js (create page), play.html, style.css,
           limits.js (shared limits), wav.js, create-logic.js
 test/     Vitest tests
-docs/     Design specs and plans, kept as history (see docs/README.md for which are
-          current and which were superseded)
 ```
 
 ## Manual test checklist
