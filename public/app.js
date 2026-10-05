@@ -1,5 +1,5 @@
 import { MAX_AUDIO_BYTES, MAX_AUDIO_SECONDS } from "/limits.js";
-import { encodeWav16 } from "/wav.js";
+import { encodeWav16, toWav16 } from "/wav.js";
 import { pickSource } from "/create-logic.js";
 
 const $ = (id) => document.getElementById(id);
@@ -19,11 +19,23 @@ const BROWSER_VOICES = [
   { id: "am_onyx", label: "Onyx (deep male)" },
   { id: "bm_george", label: "George (British, male)" },
 ];
+// Voices for in-browser Piper (the vits-web library; model downloads from Hugging Face).
+const BROWSER_PIPER_VOICES = [
+  { id: "en_US-amy-medium", label: "Amy (US, female)" },
+  { id: "en_US-hfc_female-medium", label: "HFC (US, female)" },
+  { id: "en_US-lessac-medium", label: "Lessac (US)" },
+  { id: "en_US-ryan-medium", label: "Ryan (US, male)" },
+  { id: "en_US-hfc_male-medium", label: "HFC (US, male)" },
+  { id: "en_GB-alba-medium", label: "Alba (British, female)" },
+  { id: "en_GB-northern_english_male-medium", label: "Northern English (British, male)" },
+];
 const ENGINE_NAMES = { piper: "Voice made: on the server (Piper)", kokoro: "Voice made: on the server (Kokoro)" };
 let serverVoices = {};
 
+const isServerEngine = () => Object.hasOwn(serverVoices, engineSelect.value);
+
 function fillVoices() {
-  const voices = engineSelect.value === "browser" ? BROWSER_VOICES : serverVoices[engineSelect.value];
+  const voices = { browser: BROWSER_VOICES, "browser-piper": BROWSER_PIPER_VOICES }[engineSelect.value] ?? serverVoices[engineSelect.value];
   voiceSelect.replaceChildren(...voices.map((v) => new Option("Voice: " + v.label, v.id)));
 }
 engineSelect.addEventListener("change", fillVoices);
@@ -132,6 +144,14 @@ async function synth(text, voice) {
   return new Blob([encodeWav16(audio.audio, audio.sampling_rate)], { type: "audio/wav" });
 }
 
+async function synthPiper(text, voiceId) {
+  const tts = await import("https://cdn.jsdelivr.net/npm/@diffusionstudio/vits-web@1.0.3/dist/vits-web.js");
+  const wav = await tts.predict({ text, voiceId }, (p) => {
+    if (p.total) msg.textContent = `Downloading the voice (${Math.round((p.loaded * 100) / p.total)}%). Only the first time.`;
+  });
+  return new Blob([toWav16(await wav.arrayBuffer())], { type: "audio/wav" });
+}
+
 async function postForLink(url, init) {
   const res = await fetch(url, { method: "POST", ...init });
   const data = await res.json().catch(() => ({}));
@@ -139,7 +159,7 @@ async function postForLink(url, init) {
   return data.link;
 }
 
-// Audio file as-is, or text spoken by Kokoro in this browser, then uploaded.
+// Audio file as-is, or text spoken in this browser (Kokoro or Piper), then uploaded.
 async function uploadAudio(src) {
   let blob;
   if (src.kind === "audio") {
@@ -148,7 +168,8 @@ async function uploadAudio(src) {
     blob = src.file;
   } else {
     msg.textContent = "Loading the voice. The first time can take a minute.";
-    blob = await synth(src.text, voiceSelect.value);
+    const speak = engineSelect.value === "browser-piper" ? synthPiper : synth;
+    blob = await speak(src.text, voiceSelect.value);
     if (blob.size > MAX_AUDIO_BYTES) throw new Error("That text makes audio over 3 MB. Please use shorter text.");
   }
   msg.textContent = "Uploading.";
@@ -172,7 +193,7 @@ $("f").addEventListener("submit", async (e) => {
     if (src.error) throw new Error(src.error);
 
     let link;
-    if (src.kind === "text" && engineSelect.value !== "browser") {
+    if (src.kind === "text" && isServerEngine()) {
       msg.textContent = "Making the voice on the server. This can take a minute.";
       link = await postForLink("/api/speak", {
         headers: { "Content-Type": "application/json" },

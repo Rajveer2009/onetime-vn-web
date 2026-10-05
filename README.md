@@ -25,6 +25,7 @@ If `cloudflared` is missing or does not start, the server keeps running local-on
 The page has a switch for where text becomes speech:
 
 - **In my browser (Kokoro)**: always available. Needs a recent browser; the first use downloads a model of about 90 MB.
+- **In my browser (Piper)**: always available. Runs Piper in the page (the `vits-web` library, ONNX Runtime and a Piper voice of about 63 MB, all downloaded the first time and then kept by the browser). Tested in Firefox.
 - **On the server (Piper)** and **On the server (Kokoro)**: shown only if the server has them installed. Good for slow phones. One clip is made at a time, with a short queue, so a busy server answers "busy".
 
 To install the server voices, make one Python environment and point the server at it:

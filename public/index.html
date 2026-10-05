@@ -20,7 +20,8 @@
     </div>
 
     <select id="engine" aria-label="Where the voice is made">
-      <option value="browser">Voice made: in my browser</option>
+      <option value="browser">Voice made: in my browser (Kokoro)</option>
+      <option value="browser-piper">Voice made: in my browser (Piper)</option>
     </select>
 
     <select id="voice" aria-label="Voice for typed text"></select>
@@ -29,6 +30,7 @@
     <p id="msg" class="status" role="status"></p>
   </form>
 </main>
+<script type="importmap">{ "imports": { "onnxruntime-web": "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/esm/ort.min.js" } }</script>
 <script type="module" src="/app.js"></script>
 </body>
 </html>
