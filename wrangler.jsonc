@@ -11,7 +11,13 @@
   },
   "r2_buckets": [{ "binding": "BUCKET", "bucket_name": "onetime-vn-web-audio" }],
   "durable_objects": {
-    "bindings": [{ "name": "CLIP", "class_name": "Clip" }]
+    "bindings": [
+      { "name": "CLIP", "class_name": "Clip" },
+      { "name": "RATE", "class_name": "RateLimit" }
+    ]
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Clip"] }]
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["Clip"] },
+    { "tag": "v2", "new_sqlite_classes": ["RateLimit"] }
+  ]
 }
