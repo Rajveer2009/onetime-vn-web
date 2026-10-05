@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>A voice note for you</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<main class="center">
+  <h1>You have a voice note</h1>
+  <button id="b" type="button">Play</button>
+  <p id="m">It can only be played once.</p>
+</main>
+<script>
+const b = document.getElementById("b"), m = document.getElementById("m");
+b.onclick = async () => {
+  b.disabled = true;
+  m.textContent = "Loading.";
+  try {
+    const r = await fetch(location.pathname + "/play", { method: "POST" });
+    if (!r.ok) throw new Error(r.status === 410 ? "This voice note has already been played." : "This link is not available.");
+    const a = new Audio(URL.createObjectURL(await r.blob()));
+    a.onended = () => { m.textContent = "That was it. This link is now closed."; b.hidden = true; };
+    await a.play();
+    m.textContent = "Playing.";
+  } catch (e) {
+    b.hidden = true;
+    m.textContent = e.message;
+  }
+};
+</script>
+</body>
+</html>

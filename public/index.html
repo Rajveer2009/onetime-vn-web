@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>One-time voice note</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<main>
+  <h1>One-time voice note</h1>
+  <p class="sub">Type text or pick a file. Get a link that plays once.</p>
+  <form id="f">
+    <textarea id="text" rows="5" maxlength="1000" placeholder="Type something to say"></textarea>
+    <label for="file">Or choose a .txt or audio file</label>
+    <input id="file" type="file" accept=".txt,text/plain,audio/*">
+    <label for="voice">Voice (for text)</label>
+    <select id="voice">
+      <option value="af_heart">Heart (female)</option>
+      <option value="af_bella">Bella (female)</option>
+      <option value="bf_emma">Emma (British, female)</option>
+      <option value="am_michael">Michael (male)</option>
+      <option value="am_onyx">Onyx (deep male)</option>
+      <option value="bm_george">George (British, male)</option>
+    </select>
+    <div id="ts"></div>
+    <button id="go" type="submit">Make link</button>
+    <p id="msg" role="status"></p>
+  </form>
+  <div id="result" hidden>
+    <input id="link" type="text" readonly>
+    <button id="copy" type="button">Copy</button>
+  </div>
+</main>
+<script src="/config.js"></script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" defer></script>
+<script type="module" src="/app.js"></script>
+</body>
+</html>
