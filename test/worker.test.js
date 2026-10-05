@@ -141,3 +141,11 @@ describe("play flow", () => {
     expect(wrongMethod.status).toBe(405);
   });
 });
+
+describe("static pages", () => {
+  it("serves the create page at /", async () => {
+    const res = await handle(new Request("http://example.com/"), env);
+    expect(res.status).toBe(200);
+    expect(await res.text()).toContain("One-time voice note");
+  });
+});
