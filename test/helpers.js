@@ -3,10 +3,10 @@ import { createApp } from "../server/app.js";
 import { createStore } from "../server/store.js";
 import { createLimiter } from "../server/ratelimit.js";
 
-export async function startTestServer({ storeOptions, limiterOptions, getPublicBase } = {}) {
+export async function startTestServer({ storeOptions, limiterOptions, getPublicBase, tts } = {}) {
   const store = createStore(storeOptions);
   const limiter = createLimiter(limiterOptions);
-  const server = http.createServer(createApp({ store, limiter, getPublicBase }));
+  const server = http.createServer(createApp({ store, limiter, getPublicBase, tts }));
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   const base = `http://127.0.0.1:${server.address().port}`;
   return {

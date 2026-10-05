@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { MAX_AUDIO_BYTES, checkAudio } from "../public/limits.js";
+import { MAX_AUDIO_BYTES, MAX_TEXT_CHARS, checkAudio } from "../public/limits.js";
 import { newToken } from "./token.js";
 
 const PUBLIC_DIR = fileURLToPath(new URL("../public/", import.meta.url));
@@ -47,20 +47,20 @@ function refuse(req, res, status, error) {
   req.resume();
 }
 
-// Reads the body but never keeps more than the audio limit. Anything past the
+// Reads the body but never keeps more than `max` bytes. Anything past the
 // limit is read and thrown away (up to a cap), so the client finishes sending
 // and can see our 413 instead of a reset connection. Does not use
 // `for await ... return`, which would destroy the socket before we can answer.
-function readBody(req) {
+function readBody(req, max) {
   return new Promise((resolve, reject) => {
     const chunks = [];
     let size = 0;
-    let over = Number(req.headers["content-length"] ?? 0) > MAX_AUDIO_BYTES;
+    let over = Number(req.headers["content-length"] ?? 0) > max;
     req.on("data", (chunk) => {
       size += chunk.length;
-      if (size > MAX_AUDIO_BYTES * 3) return req.destroy();
+      if (size > Math.max(max * 3, 1024 * 1024)) return req.destroy();
       if (over) return;
-      if (size > MAX_AUDIO_BYTES) {
+      if (size > max) {
         over = true;
         chunks.length = 0;
         return;
@@ -73,23 +73,69 @@ function readBody(req) {
   });
 }
 
-async function create(req, res, { store, limiter, getPublicBase }) {
-  const client = req.headers["cf-connecting-ip"] ?? req.socket.remoteAddress ?? "unknown";
-  if (!limiter.hit(client).allowed) return refuse(req, res, 429, "Too many links. Try again later.");
-  if (store.isFull()) return refuse(req, res, 503, "The server is busy. Try again later.");
+const SPEAK_BODY_LIMIT = 16 * 1024;
+const BUSY = "The server is busy. Try again later.";
 
-  const bytes = await readBody(req);
+const clientOf = (req) => req.headers["cf-connecting-ip"] ?? req.socket.remoteAddress ?? "unknown";
+
+function linkFor(req, getPublicBase, token) {
+  const proto = String(req.headers["x-forwarded-proto"] ?? "http").split(",")[0].trim();
+  return `${getPublicBase() ?? `${proto}://${req.headers.host}`}/${token}`;
+}
+
+async function create(req, res, { store, limiter, getPublicBase }) {
+  if (!limiter.hit(clientOf(req)).allowed) return refuse(req, res, 429, "Too many links. Try again later.");
+  if (store.isFull()) return refuse(req, res, 503, BUSY);
+
+  const bytes = await readBody(req, MAX_AUDIO_BYTES);
   if (!bytes) return refuse(req, res, 413, "That file is too big (max 3 MB).");
 
   const check = checkAudio({ size: bytes.length, type: req.headers["content-type"] });
   if (!check.ok) return sendJson(res, check.status, { error: check.error });
 
   const token = newToken();
-  if (!store.add(token, bytes, check.type)) return sendJson(res, 503, { error: "The server is busy. Try again later." });
+  if (!store.add(token, bytes, check.type)) return sendJson(res, 503, { error: BUSY });
+  return sendJson(res, 201, { link: linkFor(req, getPublicBase, token) });
+}
 
-  const proto = String(req.headers["x-forwarded-proto"] ?? "http").split(",")[0].trim();
-  const base = getPublicBase() ?? `${proto}://${req.headers.host}`;
-  return sendJson(res, 201, { link: `${base}/${token}` });
+// Text in, spoken on the server by a voice engine, stored like an upload.
+async function speak(req, res, { store, limiter, tts, getPublicBase }) {
+  if (!limiter.hit(clientOf(req)).allowed) return refuse(req, res, 429, "Too many links. Try again later.");
+  if (store.isFull()) return refuse(req, res, 503, BUSY);
+
+  const raw = await readBody(req, SPEAK_BODY_LIMIT);
+  if (!raw) return refuse(req, res, 413, "That text is too long.");
+  let body;
+  try {
+    body = JSON.parse(raw.toString("utf8"));
+  } catch {
+    return sendJson(res, 400, { error: "Send the text as JSON." });
+  }
+
+  const text = typeof body?.text === "string" ? body.text.trim() : "";
+  if (!text) return sendJson(res, 400, { error: "Type some text first." });
+  if (text.length > MAX_TEXT_CHARS) return sendJson(res, 400, { error: `Text is too long (max ${MAX_TEXT_CHARS} characters).` });
+  if (!tts.isValid(body.engine, body.voice)) return sendJson(res, 400, { error: "That voice is not available on the server." });
+
+  let wav;
+  try {
+    wav = await tts.speak({ engine: body.engine, voice: body.voice, text });
+  } catch (err) {
+    if (err.busy) return sendJson(res, 503, { error: "The voice engine is busy. Try again in a minute." });
+    console.error(err);
+    return sendJson(res, 502, { error: "The voice engine failed. Try again." });
+  }
+
+  const check = checkAudio({ size: wav.length, type: "audio/wav" });
+  if (!check.ok) {
+    return check.status === 413
+      ? sendJson(res, 413, { error: "That text makes audio over 3 MB. Please use shorter text." })
+      : sendJson(res, 502, { error: "The voice engine made no audio. Try again." });
+  }
+
+  const token = newToken();
+  if (!store.add(token, wav, check.type)) return sendJson(res, 503, { error: BUSY });
+  return sendJson(res, 201, { link: linkFor(req, getPublicBase, token) });
 }
 
 async function serveStatic(req, res, [file, type]) {
@@ -116,13 +162,23 @@ async function player(req, res, store, token, isPlay) {
   return send(res, 200, claim.bytes, { "Content-Type": claim.type });
 }
 
-export function createApp({ store, limiter, getPublicBase = () => null }) {
+const NO_TTS = { engines: () => ({}), isValid: () => false, speak: async () => { throw new Error("no voice engine"); } };
+
+export function createApp({ store, limiter, getPublicBase = () => null, tts = NO_TTS }) {
   return async function handle(req, res) {
     try {
       const pathname = req.url.split("?")[0];
       if (pathname === "/api/create") {
         if (req.method !== "POST") return sendJson(res, 405, { error: "Method not allowed." });
         return await create(req, res, { store, limiter, getPublicBase });
+      }
+      if (pathname === "/api/speak") {
+        if (req.method !== "POST") return sendJson(res, 405, { error: "Method not allowed." });
+        return await speak(req, res, { store, limiter, tts, getPublicBase });
+      }
+      if (pathname === "/api/engines") {
+        if (req.method !== "GET") return sendJson(res, 405, { error: "Method not allowed." });
+        return sendJson(res, 200, tts.engines());
       }
       if (Object.hasOwn(STATIC, pathname)) return await serveStatic(req, res, STATIC[pathname]);
       const m = pathname.match(/^\/([A-Za-z0-9_-]{32})(\/play)?$/);

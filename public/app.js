@@ -7,6 +7,36 @@ const msg = $("msg");
 const go = $("go");
 const fileInput = $("file");
 const drop = $("drop");
+const engineSelect = $("engine");
+const voiceSelect = $("voice");
+
+// Voices for the in-browser engine (Kokoro). Server engines come from /api/engines.
+const BROWSER_VOICES = [
+  { id: "af_heart", label: "Heart (female)" },
+  { id: "af_bella", label: "Bella (female)" },
+  { id: "bf_emma", label: "Emma (British, female)" },
+  { id: "am_michael", label: "Michael (male)" },
+  { id: "am_onyx", label: "Onyx (deep male)" },
+  { id: "bm_george", label: "George (British, male)" },
+];
+const ENGINE_NAMES = { piper: "Voice made: on the server (Piper)", kokoro: "Voice made: on the server (Kokoro)" };
+let serverVoices = {};
+
+function fillVoices() {
+  const voices = engineSelect.value === "browser" ? BROWSER_VOICES : serverVoices[engineSelect.value];
+  voiceSelect.replaceChildren(...voices.map((v) => new Option("Voice: " + v.label, v.id)));
+}
+engineSelect.addEventListener("change", fillVoices);
+fillVoices();
+
+// Offer the server engines only if this server has any.
+fetch("/api/engines")
+  .then((res) => res.json())
+  .then((engines) => {
+    serverVoices = engines;
+    for (const name of Object.keys(engines)) engineSelect.append(new Option(ENGINE_NAMES[name] ?? name, name));
+  })
+  .catch(() => {});
 
 const CREATE = "Create link";
 // Set only when the browser refused to copy automatically: the next tap copies
@@ -102,6 +132,29 @@ async function synth(text, voice) {
   return new Blob([encodeWav16(audio.audio, audio.sampling_rate)], { type: "audio/wav" });
 }
 
+async function postForLink(url, init) {
+  const res = await fetch(url, { method: "POST", ...init });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Something went wrong.");
+  return data.link;
+}
+
+// Audio file as-is, or text spoken by Kokoro in this browser, then uploaded.
+async function uploadAudio(src) {
+  let blob;
+  if (src.kind === "audio") {
+    const secs = await audioSeconds(src.file);
+    if (secs > MAX_AUDIO_SECONDS) throw new Error("Audio is too long (max 2 minutes).");
+    blob = src.file;
+  } else {
+    msg.textContent = "Loading the voice. The first time can take a minute.";
+    blob = await synth(src.text, voiceSelect.value);
+    if (blob.size > MAX_AUDIO_BYTES) throw new Error("That text makes audio over 3 MB. Please use shorter text.");
+  }
+  msg.textContent = "Uploading.";
+  return postForLink("/api/create", { headers: { "Content-Type": blob.type || "application/octet-stream" }, body: blob });
+}
+
 $("f").addEventListener("submit", async (e) => {
   e.preventDefault();
   if (pendingLink) {
@@ -118,30 +171,21 @@ $("f").addEventListener("submit", async (e) => {
     const src = pickSource({ typedText: $("text").value, file, fileText });
     if (src.error) throw new Error(src.error);
 
-    let blob;
-    if (src.kind === "audio") {
-      const secs = await audioSeconds(src.file);
-      if (secs > MAX_AUDIO_SECONDS) throw new Error("Audio is too long (max 2 minutes).");
-      blob = src.file;
+    let link;
+    if (src.kind === "text" && engineSelect.value !== "browser") {
+      msg.textContent = "Making the voice on the server. This can take a minute.";
+      link = await postForLink("/api/speak", {
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: src.text, engine: engineSelect.value, voice: voiceSelect.value }),
+      });
     } else {
-      msg.textContent = "Loading the voice. The first time can take a minute.";
-      blob = await synth(src.text, $("voice").value);
-      if (blob.size > MAX_AUDIO_BYTES) throw new Error("That text makes audio over 3 MB. Please use shorter text.");
+      link = await uploadAudio(src);
     }
 
-    msg.textContent = "Uploading.";
-    const res = await fetch("/api/create", {
-      method: "POST",
-      headers: { "Content-Type": blob.type || "application/octet-stream" },
-      body: blob,
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || "Something went wrong.");
-
-    if (await copy(data.link)) {
+    if (await copy(link)) {
       showCopied();
     } else {
-      pendingLink = data.link;
+      pendingLink = link;
       msg.textContent = "Link ready. Tap Copy link to copy it. It plays once.";
       go.textContent = "Copy link";
     }
