@@ -9,10 +9,15 @@ describe("create page", () => {
     expect(html).toContain('id="drop"');
     expect(html).toMatch(/<input[^>]*id="file"[^>]*hidden/);
   });
-  it("shows the link as a link, not in a text box", () => {
-    expect(html).toMatch(/<a[^>]*id="link"/);
-    expect(html).not.toMatch(/<input[^>]*id="link"/);
+  it("never shows the link: one Create link button, no link element or copy button", () => {
+    expect(html).toMatch(/<button[^>]*id="go"[^>]*>Create link<\/button>/);
+    expect(html).not.toContain('id="link"');
+    expect(html).not.toContain('id="copy"');
+    expect(html).not.toContain('id="result"');
     expect(html).not.toContain("readonly");
+  });
+  it("has no separate labels, so every element sits in one evenly spaced stack", () => {
+    expect(html).not.toMatch(/<label/);
   });
   it("has no CAPTCHA", () => {
     expect(html.toLowerCase()).not.toContain("turnstile");

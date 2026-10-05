@@ -4,8 +4,41 @@ import { pickSource } from "/create-logic.js";
 
 const $ = (id) => document.getElementById(id);
 const msg = $("msg");
+const go = $("go");
 const fileInput = $("file");
 const drop = $("drop");
+
+// "create": button makes a new link. "copy": the browser refused to copy
+// automatically, so the next tap copies the link we already have.
+let mode = "create";
+let lastLink = "";
+let resetTimer;
+
+function setButton(label, nextMode) {
+  go.textContent = label;
+  mode = nextMode;
+}
+
+function resetButtonSoon() {
+  clearTimeout(resetTimer);
+  resetTimer = setTimeout(() => setButton("Create link", "create"), 2000);
+}
+
+// Changing the input means the old link no longer matches: back to creating.
+function backToCreate() {
+  if (mode === "copy") setButton("Create link", "create");
+}
+$("text").addEventListener("input", backToCreate);
+fileInput.addEventListener("change", backToCreate);
+
+async function copyLink() {
+  try {
+    await navigator.clipboard.writeText(lastLink);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 function renderPicked() {
   const file = fileInput.files[0];
@@ -71,8 +104,18 @@ async function synth(text, voice) {
 
 $("f").addEventListener("submit", async (e) => {
   e.preventDefault();
-  $("result").hidden = true;
-  $("go").disabled = true;
+  if (mode === "copy") {
+    if (await copyLink()) {
+      msg.textContent = "Link copied to your clipboard. It plays once.";
+      setButton("Link copied", "create");
+      resetButtonSoon();
+    } else {
+      msg.textContent = "Your browser would not copy it. Try again, or use a different browser.";
+    }
+    return;
+  }
+  clearTimeout(resetTimer);
+  go.disabled = true;
   try {
     const file = fileInput.files[0];
     const fileText = file && !file.type.startsWith("audio/") ? await file.text() : undefined;
@@ -99,23 +142,18 @@ $("f").addEventListener("submit", async (e) => {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || "Something went wrong.");
 
-    $("link").href = data.link;
-    $("link").textContent = data.link;
-    $("copy").textContent = "Copy";
-    $("result").hidden = false;
-    msg.textContent = "Link ready. It plays once.";
+    lastLink = data.link;
+    if (await copyLink()) {
+      msg.textContent = "Link copied to your clipboard. It plays once.";
+      setButton("Link copied", "create");
+      resetButtonSoon();
+    } else {
+      msg.textContent = "Link ready. Tap Copy link to copy it. It plays once.";
+      setButton("Copy link", "copy");
+    }
   } catch (err) {
     msg.textContent = err.message;
   } finally {
-    $("go").disabled = false;
-  }
-});
-
-$("copy").addEventListener("click", async () => {
-  try {
-    await navigator.clipboard.writeText($("link").href);
-    $("copy").textContent = "Copied";
-  } catch {
-    msg.textContent = "Copy failed. Press and hold the link to copy it.";
+    go.disabled = false;
   }
 });
