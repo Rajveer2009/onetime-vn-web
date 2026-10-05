@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="robots" content="noindex">
+  <meta name="referrer" content="no-referrer">
   <title>A voice note for you</title>
   <link rel="stylesheet" href="/style.css">
 </head>
@@ -11,23 +12,38 @@
 <main class="center">
   <h1>You have a voice note</h1>
   <button id="b" type="button">Play</button>
+  <audio id="p" controls hidden></audio>
   <p id="m">It can only be played once.</p>
 </main>
 <script>
-const b = document.getElementById("b"), m = document.getElementById("m");
+const b = document.getElementById("b"), m = document.getElementById("m"), p = document.getElementById("p");
 b.onclick = async () => {
   b.disabled = true;
   m.textContent = "Loading.";
+  let r;
   try {
-    const r = await fetch(location.pathname + "/play", { method: "POST" });
-    if (!r.ok) throw new Error(r.status === 410 ? "This voice note has already been played." : "This link is not available.");
-    const a = new Audio(URL.createObjectURL(await r.blob()));
-    a.onended = () => { m.textContent = "That was it. This link is now closed."; b.hidden = true; };
-    await a.play();
-    m.textContent = "Playing.";
-  } catch (e) {
+    r = await fetch(location.pathname + "/play", { method: "POST" });
+  } catch {
+    b.disabled = false;
+    m.textContent = "Could not reach the server. Check your connection and try again.";
+    return;
+  }
+  if (!r.ok) {
     b.hidden = true;
-    m.textContent = e.message;
+    m.textContent = r.status === 410 ? "This voice note has already been played." : "This link is not available.";
+    return;
+  }
+  // The link is now used up, so keep the audio here and give a visible player
+  // if the browser blocks autoplay.
+  p.src = URL.createObjectURL(await r.blob());
+  p.hidden = false;
+  b.hidden = true;
+  p.onended = () => { m.textContent = "That was it. This link is now closed."; p.hidden = true; };
+  try {
+    await p.play();
+    m.textContent = "Playing.";
+  } catch {
+    m.textContent = "Your browser blocked autoplay. Press play on the player above. This note can't be opened again.";
   }
 };
 </script>

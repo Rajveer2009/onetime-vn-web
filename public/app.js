@@ -1,4 +1,5 @@
-import { MAX_AUDIO_SECONDS } from "/limits.js";
+import { MAX_AUDIO_BYTES, MAX_AUDIO_SECONDS } from "/limits.js";
+import { encodeWav16 } from "/wav.js";
 import { pickSource } from "/create-logic.js";
 
 const $ = (id) => document.getElementById(id);
@@ -34,7 +35,7 @@ async function synth(text, voice) {
     device,
   });
   const audio = await tts.generate(text, { voice });
-  return audio.toBlob();
+  return new Blob([encodeWav16(audio.audio, audio.sampling_rate)], { type: "audio/wav" });
 }
 
 $("f").addEventListener("submit", async (e) => {
@@ -56,6 +57,7 @@ $("f").addEventListener("submit", async (e) => {
     } else {
       msg.textContent = "Loading the voice. The first time can take a minute.";
       blob = await synth(src.text, $("voice").value);
+      if (blob.size > MAX_AUDIO_BYTES) throw new Error("That text makes audio over 3 MB. Please use shorter text.");
     }
 
     msg.textContent = "Uploading.";
