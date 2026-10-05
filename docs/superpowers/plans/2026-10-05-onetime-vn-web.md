@@ -1,5 +1,7 @@
 # onetime-vn-web Implementation Plan
 
+> **Status: superseded.** This plan built the Cloudflare Workers version. It was implemented and then replaced by the Node + quick-tunnel version ([plan](2026-10-05-onetime-vn-web-node.md)). It is kept as history. Its code is no longer in the repository; see git history before the `node-rewrite` merge if you want it.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** A minimal public website where anyone enters text, a `.txt` file or an audio file and gets a link that plays the voice note exactly once.

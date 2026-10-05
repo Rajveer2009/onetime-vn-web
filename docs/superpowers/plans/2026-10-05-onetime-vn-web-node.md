@@ -1,5 +1,7 @@
 # onetime-vn-web Node + quick-tunnel Implementation Plan
 
+> **Status: implemented.** The tasks below were completed as written, apart from the rulings noted in the repository history. The features added afterwards (single Create link button, server and in-browser voice engines) are not in this plan; the [README](../../../README.md) describes the current behaviour.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace the Cloudflare Workers build with a plain Node server on the owner's Mac made public by a `cloudflared` quick tunnel, with links like `https://<words>.trycloudflare.com/<token>`, a nicer file input, the link shown as text, and no audio controller on the play page.

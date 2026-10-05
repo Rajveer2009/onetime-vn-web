@@ -1,5 +1,7 @@
 # onetime-vn-web: Node server + quick-tunnel redesign
 
+> **Status: current hosting design, with later changes.** After this spec was written the project also gained: a single full-width Create link button that copies the link (the link is no longer shown, replacing the text link and Copy button described below); 24 px spacing; a "Voice made" menu with in-browser Kokoro, in-browser Piper (14 voices), and optional server-side Piper and Kokoro (`/api/speak`, `/api/engines`). The [README](../../../README.md) describes the current behaviour.
+
 Date: 2026-10-05. Supersedes the hosting parts of `2026-10-05-onetime-vn-web-design.md` (Cloudflare Workers, R2, Durable Objects, Turnstile). Everything not mentioned here stays as in that spec.
 
 ## Purpose

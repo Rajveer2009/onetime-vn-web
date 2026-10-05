@@ -1,5 +1,7 @@
 # onetime-vn-web: design
 
+> **Status: superseded in part.** This was the first design, which hosted the site on Cloudflare Workers, R2 and Turnstile. That hosting was replaced by a Node server with a quick tunnel; see [the Node + quick-tunnel design](2026-10-05-onetime-vn-web-node-design.md). The product behaviour here (one-time play, limits, link previews not burning the link) still applies. The Workers, R2, Durable Objects and Turnstile parts do not exist in the code any more.
+
 Date: 2026-10-05
 
 ## Purpose

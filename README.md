@@ -109,8 +109,8 @@ server/   Node server: app.js (routes), store.js (clips), ratelimit.js, tunnel.j
 public/   The pages: index.html, app.js (create page), play.html, style.css,
           limits.js (shared limits), wav.js, create-logic.js
 test/     Vitest tests
-docs/     Design specs and plans (including the earlier Cloudflare Workers design
-          that this version replaced)
+docs/     Design specs and plans, kept as history (see docs/README.md for which are
+          current and which were superseded)
 ```
 
 ## Manual test checklist
@@ -124,3 +124,7 @@ docs/     Design specs and plans (including the earlier Cloudflare Workers desig
 7. Open a public link on a phone (Safari on iPhone included) and press Play. If autoplay is blocked the button says "Tap to play".
 8. Make 11 links quickly. The 11th is refused.
 9. Try each voice option, including a long text, in a real browser.
+
+## License
+
+[MIT](LICENSE)
