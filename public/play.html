@@ -12,12 +12,24 @@
 <main class="center">
   <h1>You have a voice note</h1>
   <button id="b" type="button">Play</button>
-  <audio id="p" controls hidden></audio>
   <p id="m">It can only be played once.</p>
 </main>
 <script>
-const b = document.getElementById("b"), m = document.getElementById("m"), p = document.getElementById("p");
+const b = document.getElementById("b"), m = document.getElementById("m");
+let audio = null;
+
 b.onclick = async () => {
+  if (audio) {
+    // Autoplay was blocked: play what we already hold, without asking the server again.
+    try {
+      await audio.play();
+      b.hidden = true;
+      m.textContent = "Playing.";
+    } catch {
+      m.textContent = "Your browser would not play it. This note can't be opened again.";
+    }
+    return;
+  }
   b.disabled = true;
   m.textContent = "Loading.";
   let r;
@@ -33,17 +45,19 @@ b.onclick = async () => {
     m.textContent = r.status === 410 ? "This voice note has already been played." : "This link is not available.";
     return;
   }
-  // The link is now used up, so keep the audio here and give a visible player
-  // if the browser blocks autoplay.
-  p.src = URL.createObjectURL(await r.blob());
-  p.hidden = false;
-  b.hidden = true;
-  p.onended = () => { m.textContent = "That was it. This link is now closed."; p.hidden = true; };
+  audio = new Audio(URL.createObjectURL(await r.blob()));
+  audio.onended = () => {
+    m.textContent = "That was it. This link is now closed.";
+    b.hidden = true;
+  };
   try {
-    await p.play();
+    await audio.play();
+    b.hidden = true;
     m.textContent = "Playing.";
   } catch {
-    m.textContent = "Your browser blocked autoplay. Press play on the player above. This note can't be opened again.";
+    b.disabled = false;
+    b.textContent = "Tap to play";
+    m.textContent = "Your browser blocked autoplay. Tap to play. This note can't be opened again.";
   }
 };
 </script>

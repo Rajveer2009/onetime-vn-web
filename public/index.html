@@ -12,8 +12,14 @@
   <p class="sub">Type text or pick a file. Get a link that plays once.</p>
   <form id="f">
     <textarea id="text" rows="5" maxlength="1000" placeholder="Type something to say"></textarea>
-    <label for="file">Or choose a .txt or audio file</label>
-    <input id="file" type="file" accept=".txt,text/plain,audio/*">
+
+    <label>Or use a .txt or audio file</label>
+    <div id="drop" class="drop" tabindex="0" role="button" aria-label="Choose a .txt or audio file">
+      <input id="file" type="file" accept=".txt,text/plain,audio/*" hidden>
+      <span id="dropLabel">Choose a file, or drop it here</span>
+      <span id="picked" hidden><span id="fileName"></span> <a href="#" id="clear">remove</a></span>
+    </div>
+
     <label for="voice">Voice (for text)</label>
     <select id="voice">
       <option value="af_heart">Heart (female)</option>
@@ -23,17 +29,16 @@
       <option value="am_onyx">Onyx (deep male)</option>
       <option value="bm_george">George (British, male)</option>
     </select>
-    <div id="ts"></div>
+
     <button id="go" type="submit">Make link</button>
     <p id="msg" role="status"></p>
   </form>
+
   <div id="result" hidden>
-    <input id="link" type="text" readonly>
+    <a id="link" href="#" target="_blank" rel="noopener"></a>
     <button id="copy" type="button">Copy</button>
   </div>
 </main>
-<script src="/config.js"></script>
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" defer></script>
 <script type="module" src="/app.js"></script>
 </body>
 </html>
