@@ -149,3 +149,25 @@ describe("static pages", () => {
     expect(await res.text()).toContain("One-time voice note");
   });
 });
+
+describe("failure handling", () => {
+  it("deletes the stored audio when creating the clip record fails", async () => {
+    const before = new Set((await env.BUCKET.list()).objects.map((o) => o.key));
+    const brokenClip = { idFromName: (n) => n, get: () => ({ init: async () => { throw new Error("boom"); } }) };
+    const res = await handle(createReq(), { ...env, CLIP: brokenClip }, { verify: pass });
+    expect(res.status).toBe(500);
+    expect((await res.json()).error).toMatch(/try again/i);
+    const after = (await env.BUCKET.list()).objects.map((o) => o.key);
+    expect(after.filter((k) => !before.has(k))).toEqual([]);
+  });
+
+  it("says the note is unavailable, not already played, when the audio is gone after claiming", async () => {
+    const link = await newLink();
+    await env.BUCKET.delete(tokenOf(link));
+    const res = await post(link);
+    expect(res.status).toBe(410);
+    const { error } = await res.json();
+    expect(error).not.toMatch(/already played/i);
+    expect(error).toMatch(/no longer available/i);
+  });
+});

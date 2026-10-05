@@ -54,7 +54,12 @@ async function create(request, env, url, verify) {
 
   const token = newToken();
   await env.BUCKET.put(token, await file.arrayBuffer(), { httpMetadata: { contentType: check.type } });
-  await clipStub(env, token).init(token, check.type);
+  try {
+    await clipStub(env, token).init(token, check.type);
+  } catch {
+    await env.BUCKET.delete(token);
+    return json({ error: "Could not create the link. Please try again." }, 500);
+  }
   return json({ link: `${url.origin}/p/${token}` }, 201);
 }
 
@@ -79,7 +84,7 @@ async function player(request, env, url) {
     return claim.reason === "played" ? json({ error: "Already played." }, 410) : json({ error: "Not available." }, 404);
   }
   const obj = await env.BUCKET.get(token);
-  if (!obj) return json({ error: "Not available." }, 410);
+  if (!obj) return json({ error: "This voice note is no longer available." }, 410);
   const bytes = await obj.arrayBuffer();
   await env.BUCKET.delete(token);
   return new Response(bytes, { headers: { ...SAFE, "Content-Type": claim.contentType } });
