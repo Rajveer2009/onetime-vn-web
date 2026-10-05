@@ -6,12 +6,11 @@
 body { margin: 0; background: var(--bg); color: var(--fg); font: 17px/1.5 system-ui, sans-serif; }
 
 /* One column, 512px wide at most, with the same gap between every element. */
-main { width: 100%; max-width: calc(512px + 2 * var(--gap)); margin: 0 auto; padding: 48px var(--gap); display: grid; gap: var(--gap); }
-form { display: grid; gap: var(--gap); }
+main { width: 100%; max-width: calc(512px + 2 * var(--gap)); margin: 0 auto; padding: 48px var(--gap); }
+main, form { display: grid; gap: var(--gap); }
 h1 { font-size: 1.5rem; margin: 0; }
-.sub { margin: 0; }
-.sub, #msg, #m { color: var(--muted); }
-#msg, #m { margin: 0; min-height: 1.5em; }
+.sub, .status { margin: 0; color: var(--muted); }
+.status { min-height: 1.5em; }
 
 textarea, select, .drop, button { width: 100%; margin: 0; font: inherit; border-radius: var(--radius); }
 textarea, select { padding: 12px; color: inherit; background: transparent; border: 1px solid var(--line); }

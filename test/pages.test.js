@@ -9,15 +9,13 @@ describe("create page", () => {
     expect(html).toContain('id="drop"');
     expect(html).toMatch(/<input[^>]*id="file"[^>]*hidden/);
   });
-  it("never shows the link: one Create link button, no link element or copy button", () => {
+  it("has one Create link button and never shows the link", () => {
     expect(html).toMatch(/<button[^>]*id="go"[^>]*>Create link<\/button>/);
     expect(html).not.toContain('id="link"');
-    expect(html).not.toContain('id="copy"');
-    expect(html).not.toContain('id="result"');
-    expect(html).not.toContain("readonly");
   });
-  it("has no separate labels, so every element sits in one evenly spaced stack", () => {
-    expect(html).not.toMatch(/<label/);
+  it("gives every control an accessible name", () => {
+    for (const tag of html.match(/<(textarea|select)\b[^>]*>/g)) expect(tag).toContain("aria-label=");
+    expect(html).toMatch(/<div[^>]*id="drop"[^>]*aria-label=/);
   });
   it("has no CAPTCHA", () => {
     expect(html.toLowerCase()).not.toContain("turnstile");

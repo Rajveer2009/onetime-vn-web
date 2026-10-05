@@ -8,37 +8,37 @@ const go = $("go");
 const fileInput = $("file");
 const drop = $("drop");
 
-// "create": button makes a new link. "copy": the browser refused to copy
-// automatically, so the next tap copies the link we already have.
-let mode = "create";
-let lastLink = "";
+const CREATE = "Create link";
+// Set only when the browser refused to copy automatically: the next tap copies
+// this link instead of creating a new one.
+let pendingLink = "";
 let resetTimer;
 
-function setButton(label, nextMode) {
-  go.textContent = label;
-  mode = nextMode;
-}
-
-function resetButtonSoon() {
-  clearTimeout(resetTimer);
-  resetTimer = setTimeout(() => setButton("Create link", "create"), 2000);
-}
-
-// Changing the input means the old link no longer matches: back to creating.
-function backToCreate() {
-  if (mode === "copy") setButton("Create link", "create");
-}
-$("text").addEventListener("input", backToCreate);
-fileInput.addEventListener("change", backToCreate);
-
-async function copyLink() {
+async function copy(text) {
   try {
-    await navigator.clipboard.writeText(lastLink);
+    await navigator.clipboard.writeText(text);
     return true;
   } catch {
     return false;
   }
 }
+
+function showCopied() {
+  pendingLink = "";
+  msg.textContent = "Link copied to your clipboard. It plays once.";
+  go.textContent = "Link copied";
+  clearTimeout(resetTimer);
+  resetTimer = setTimeout(() => (go.textContent = CREATE), 2000);
+}
+
+// Changing the input means the old link no longer matches: back to creating.
+function backToCreate() {
+  if (!pendingLink) return;
+  pendingLink = "";
+  go.textContent = CREATE;
+}
+$("text").addEventListener("input", backToCreate);
+fileInput.addEventListener("change", backToCreate);
 
 function renderPicked() {
   const file = fileInput.files[0];
@@ -104,17 +104,13 @@ async function synth(text, voice) {
 
 $("f").addEventListener("submit", async (e) => {
   e.preventDefault();
-  if (mode === "copy") {
-    if (await copyLink()) {
-      msg.textContent = "Link copied to your clipboard. It plays once.";
-      setButton("Link copied", "create");
-      resetButtonSoon();
-    } else {
-      msg.textContent = "Your browser would not copy it. Try again, or use a different browser.";
-    }
+  if (pendingLink) {
+    if (await copy(pendingLink)) showCopied();
+    else msg.textContent = "Your browser would not copy it. Try again, or use a different browser.";
     return;
   }
   clearTimeout(resetTimer);
+  go.textContent = CREATE;
   go.disabled = true;
   try {
     const file = fileInput.files[0];
@@ -142,14 +138,12 @@ $("f").addEventListener("submit", async (e) => {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || "Something went wrong.");
 
-    lastLink = data.link;
-    if (await copyLink()) {
-      msg.textContent = "Link copied to your clipboard. It plays once.";
-      setButton("Link copied", "create");
-      resetButtonSoon();
+    if (await copy(data.link)) {
+      showCopied();
     } else {
+      pendingLink = data.link;
       msg.textContent = "Link ready. Tap Copy link to copy it. It plays once.";
-      setButton("Copy link", "copy");
+      go.textContent = "Copy link";
     }
   } catch (err) {
     msg.textContent = err.message;
