@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { newToken, isToken } from "../src/token.js";
+import { newToken, isToken } from "../server/token.js";
 
 describe("tokens", () => {
   it("makes 32-character url-safe tokens", () => {
