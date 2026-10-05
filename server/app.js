@@ -97,6 +97,25 @@ async function serveStatic(req, res, [file, type]) {
   return send(res, 200, await readFile(PUBLIC_DIR + file), { "Content-Type": type });
 }
 
+async function player(req, res, store, token, isPlay) {
+  if (!isPlay) {
+    if (req.method !== "GET" && req.method !== "HEAD") return sendJson(res, 405, { error: "Method not allowed." });
+    const status = store.status(token);
+    if (status === "played") return page(res, "This voice note has already been played.", 410);
+    if (status !== "unplayed") return page(res, "This link is not available.", 404);
+    return send(res, 200, await readFile(PUBLIC_DIR + "play.html"), { "Content-Type": HTML });
+  }
+
+  if (req.method !== "POST") return sendJson(res, 405, { error: "Method not allowed." });
+  const claim = store.claim(token);
+  if (!claim.ok) {
+    return claim.reason === "played"
+      ? sendJson(res, 410, { error: "Already played." })
+      : sendJson(res, 404, { error: "Not available." });
+  }
+  return send(res, 200, claim.bytes, { "Content-Type": claim.type });
+}
+
 export function createApp({ store, limiter, getPublicBase = () => null }) {
   return async function handle(req, res) {
     try {
@@ -106,6 +125,8 @@ export function createApp({ store, limiter, getPublicBase = () => null }) {
         return await create(req, res, { store, limiter, getPublicBase });
       }
       if (Object.hasOwn(STATIC, pathname)) return await serveStatic(req, res, STATIC[pathname]);
+      const m = pathname.match(/^\/([A-Za-z0-9_-]{32})(\/play)?$/);
+      if (m) return await player(req, res, store, m[1], Boolean(m[2]));
       return page(res, "This link is not available.", 404);
     } catch (err) {
       console.error(err);
