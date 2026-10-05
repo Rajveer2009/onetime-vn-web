@@ -1,4 +1,4 @@
-:root { --bg: #f7f6f2; --fg: #1d1c1a; --muted: #6b6963; --line: #d8d5cc; --ac: #2f6f5e; --gap: 16px; --radius: 12px; }
+:root { --bg: #f7f6f2; --fg: #1d1c1a; --muted: #6b6963; --line: #d8d5cc; --ac: #2f6f5e; --gap: 24px; --radius: 12px; }
 @media (prefers-color-scheme: dark) {
   :root { --bg: #161614; --fg: #eeeae2; --muted: #9b978d; --line: #35332e; --ac: #6fc2a9; }
 }
