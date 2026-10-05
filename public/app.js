@@ -23,10 +23,17 @@ const BROWSER_VOICES = [
 const BROWSER_PIPER_VOICES = [
   { id: "en_US-amy-medium", label: "Amy (US, female)" },
   { id: "en_US-hfc_female-medium", label: "HFC (US, female)" },
+  { id: "en_US-kristin-medium", label: "Kristin (US, female)" },
+  { id: "en_US-ljspeech-medium", label: "LJ Speech (US, female)" },
   { id: "en_US-lessac-medium", label: "Lessac (US)" },
   { id: "en_US-ryan-medium", label: "Ryan (US, male)" },
+  { id: "en_US-joe-medium", label: "Joe (US, male)" },
+  { id: "en_US-kusal-medium", label: "Kusal (US, male)" },
   { id: "en_US-hfc_male-medium", label: "HFC (US, male)" },
   { id: "en_GB-alba-medium", label: "Alba (British, female)" },
+  { id: "en_GB-jenny_dioco-medium", label: "Jenny (British, female)" },
+  { id: "en_GB-cori-medium", label: "Cori (British, female)" },
+  { id: "en_GB-alan-medium", label: "Alan (British, male)" },
   { id: "en_GB-northern_english_male-medium", label: "Northern English (British, male)" },
 ];
 const ENGINE_NAMES = { piper: "Voice made: on the server (Piper)", kokoro: "Voice made: on the server (Kokoro)" };
